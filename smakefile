@@ -1,0 +1,62 @@
+#
+# :ts=8
+#
+# An AmigaE filetype plugin for AmigaOS 3.2 TextEdit
+#
+
+.asm.o:
+	asm $(AFLAGS) $<
+
+.c.o:
+	sc $(CFLAGS) $<
+#	@ctags >tagfiles/$* $<
+
+###############################################################################
+
+OPTIMIZE =	optimize opttime
+CPU =		any
+#DEBUG =		line
+DEBUG =	symbolflush noopt
+
+###############################################################################
+
+CFLAGS =	idlen=64 comnest streq strmerge nostkchk \
+		$(OPTIMIZE) cpu=$(CPU) debug=$(DEBUG) \
+        params=register strsect=code mccons data=far \
+		IDIR=sc:include
+AFLAGS =	-d
+LFLAGS =	addsym smallcode noicons batch smalldata
+
+###############################################################################
+
+OBJS = pluginheader.o highlight_amigaE.o common.o
+LIBS = lib:scnb.lib lib:amiga.lib lib:debug.lib
+
+###############################################################################
+
+all: tagfiles amigaE
+
+tagfiles:
+    makedir $@
+
+amigaE: $(OBJS)
+	slink $(OBJS) to $@.debug lib $(LIBS) $(LFLAGS) \
+		map $@.map,fhx fwidth 32 pwidth 32 swidth 32
+	slink $@.debug to $@ noicons nodebug
+	@copy amigaE sys:tools/texteditfiletypes/amigaE
+  @copy amigaE dh0:codecraft/texteditfiletypes/amigaE
+
+###############################################################################
+
+###############################################################################
+
+clean:
+	-delete \#?.(o|lib) \#?/\#?.(o|lib) DAControl(%|.debug)
+
+realclean: clean
+	-delete tags tagfiles \#?.map all
+
+###############################################################################
+
+mkid:
+	mkid -v \#?.(c|h)
