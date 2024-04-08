@@ -50,8 +50,9 @@ struct Plugin filetypePlugin =
 #define HL_CONSTANT 5
 #define HL_SYSTEMVAR 6
 #define HL_FUNCTION 7
+#define HL_PREPROC 8
 
-static UWORD defaultStyleCodes[8] =
+static UWORD defaultStyleCodes[9] =
 {
 		(0<<8)|0, // plain
 		(3<<8)|TBSTYLE_SETCOLOR, // comment
@@ -60,10 +61,11 @@ static UWORD defaultStyleCodes[8] =
 		(1<<8)|TBSTYLE_SETCOLOR|TBSTYLE_BOLD, // type
 		(3<<8)|TBSTYLE_SETCOLOR|TBSTYLE_ITALIC, // constant
 		(3<<8)|TBSTYLE_SETCOLOR|TBSTYLE_ITALIC, // system var
-		(1<<8)|TBSTYLE_SETCOLOR|TBSTYLE_ITALIC // function
+		(1<<8)|TBSTYLE_SETCOLOR|TBSTYLE_ITALIC, // function
+		(1<<8)|TBSTYLE_SETCOLOR|TBSTYLE_BOLD // preprocessor
 };
 
-static CONST_STRPTR stylename[8];
+static CONST_STRPTR stylename[9];
 
 static char *globalcommands[] = {
 	"ALWAYS",
@@ -421,6 +423,19 @@ static char *etypes[] = {
 	NULL
 };
 
+static char *epreproc[] = {
+	"#date",
+	"#define",
+	"#elifdef",
+	"#elifndef",
+	"#else",
+	"#endif",
+	"#ifdef",
+	"#ifndef",
+	"#undef",
+	NULL
+};
+
 static void __ASM__ init(__REG__(a0, APTR userData))
 {
 	struct Hook *hook;
@@ -455,11 +470,12 @@ static void __ASM__ init(__REG__(a0, APTR userData))
 	stylename[4] = "Constant";
 	stylename[5] = "System Variable";
 	stylename[6] = "Function";
-	stylename[7] = NULL;
+	stylename[7] = "Preprocessor";
+	stylename[8] = NULL;
 
 	hlGUI = fType->createHighlightStylesGUI(stylename, defaultStyleCodes);
 	fType->pluginData = (ULONG)hlGUI;
-	fType->highlighterHook = hook = fType->createHighlighter(1750, TEHL_CASESENSITIVE, hlGUI->inuseStylecodes);
+	fType->highlighterHook = hook = fType->createHighlighter(1750, TEHL_CASESENSITIVE/*|TEHL_SERIALDEBUG*/, hlGUI->inuseStylecodes);
 
 	if (!hook)
 		return;
@@ -542,6 +558,13 @@ static void __ASM__ init(__REG__(a0, APTR userData))
 	while (esystemvars[i])
 	{
 		fType->createHighlightKeyword(hook, esystemvars[i++], HL_SYSTEMVAR, INITIALSTATE, TRUE);
+	}
+
+	//Set up the preprocessors
+	i=0;
+	while (epreproc[i])
+	{
+		fType->createHighlightKeyword(hook, epreproc[i++], HL_PREPROC, INITIALSTATE, TRUE);
 	}
 	
 	fType->linkHighlightState(hook, DEFAULTSTATE, INITIALSTATE);
